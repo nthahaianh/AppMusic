@@ -6,15 +6,22 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.appmusic.Adapter.FavouriteSongAdapter
+import com.example.appmusic.SQLite.SQLHelper
 import com.example.appmusic.Service.SongService
 import kotlinx.android.synthetic.main.fragment_favourite.*
 
 class FavouriteFragment: Fragment() {
+    lateinit var sqlHelper: SQLHelper
+    var favouriteList: MutableList<MySong> = mutableListOf()
     private lateinit var songService: SongService
     var isSongServiceConnected = false
     private val connectSongService = object : ServiceConnection {
@@ -46,12 +53,36 @@ class FavouriteFragment: Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_favourite,container,false)
+        sqlHelper = SQLHelper(context)
         return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        favourite_tvTitle.setOnClickListener {
+        try {
+            favouriteList = sqlHelper.getAll()
+//            for (itemSong in favouriteList){
+//                if (itemSong.isOnline && sqlHelper.isExists(itemSong.id)){
+//
+//                }
+//            }
+            val layoutManager: RecyclerView.LayoutManager =
+                LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
+            var adapter = FavouriteSongAdapter(context,favouriteList)
+            adapter.setCallBack {
+                Log.e("favourite-click","${favouriteList[it]}")
+                SongService.currentSong = favouriteList[it]
+                val intent = Intent(context, SongService::class.java)
+                intent.putExtra("action", SongService.ON_START)
+                activity?.startService(intent)
+                val intentSong = Intent(context,SongActivity::class.java)
+                startActivity(intentSong)
+            }
+            favourite_rvFavourite.layoutManager = layoutManager
+            favourite_rvFavourite.adapter = adapter
+        }catch (e:Exception){
+            e.stackTrace
+            Log.e("favourite-SQL","Read SQL error")
         }
     }
 }

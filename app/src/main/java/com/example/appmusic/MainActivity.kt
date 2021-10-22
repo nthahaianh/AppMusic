@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
                 updateMusicManager()
             }
             ON_PAUSE -> {
-                SongService.isPlaying = false
+                isPlaying = false
                 updateBtnPlay()
             }
             SongService.ON_DONE-> {
@@ -58,14 +58,8 @@ class MainActivity : AppCompatActivity() {
                 updateMusicManager()
             }
             ON_RESUME -> {
-                SongService.isPlaying = true
+                isPlaying = true
                 updateBtnPlay()
-            }
-            ON_PREVIOUS->{
-                Toast.makeText(baseContext,"Previous",Toast.LENGTH_SHORT).show()
-            }
-            ON_NEXT->{
-                Toast.makeText(baseContext,"Next",Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -76,12 +70,22 @@ class MainActivity : AppCompatActivity() {
             isSongServiceConnected = true
             SongService.isDestroy = false
             main_btnPlay.setOnClickListener {
-                if(SongService.isPlaying){
+                if(isPlaying){
                     songService.pauseSong()
                 }else{
                     songService.resumeSong()
                 }
                 updateBtnPlay()
+            }
+            main_btnNext_song.setOnClickListener {
+                val intent = Intent(baseContext, SongService::class.java)
+                intent.putExtra("action", ON_NEXT)
+                startService(intent)
+            }
+            main_btnPrevious_song.setOnClickListener {
+                val intent = Intent(baseContext, SongService::class.java)
+                intent.putExtra("action", ON_PREVIOUS)
+                startService(intent)
             }
         }
 
@@ -140,7 +144,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateBtnPlay() {
-        if (SongService.isPlaying) {
+        if (isPlaying) {
             main_btnPlay.setImageResource(R.drawable.ic_pause)
         } else {
             main_btnPlay.setImageResource(R.drawable.ic_play_arrow)

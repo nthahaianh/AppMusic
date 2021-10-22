@@ -4,9 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
-import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -15,12 +12,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.appmusic.Adapter.SearchListAdapter
 import com.example.appmusic.Service.SongService
-import com.example.appmusic.Service.SongService.Companion.isOnline
 import com.example.demoretrofit.IRetrofit
 import com.example.demoretrofit.Model.ResultSearch
 import com.example.demoretrofit.Model.SongSearch
@@ -106,7 +101,6 @@ class SearchFragment: Fragment() {
             LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         var adapter = SearchListAdapter(listSearch)
         adapter.setCallBack {
-            isOnline = true
             val song = listSearch[it]
             val id = song.id
             val title = song.name

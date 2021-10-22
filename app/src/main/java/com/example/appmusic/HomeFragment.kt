@@ -4,9 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
-import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -14,25 +11,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.appmusic.Adapter.SearchListAdapter
 import com.example.appmusic.Adapter.SongAdapter
-import com.example.appmusic.Service.MyService
 import com.example.appmusic.Service.SongService
-import com.example.appmusic.Service.SongService.Companion.isOnline
 import com.example.demoretrofit.IRetrofit
 import com.example.demoretrofit.Model.ResultChart
 import com.example.demoretrofit.Model.Song
 import com.example.demoretrofit.MyRetrofit
 import kotlinx.android.synthetic.main.fragment_home.*
-import kotlinx.android.synthetic.main.fragment_search.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import com.example.appmusic.HomeFragment as HomeFragment1
 
 class HomeFragment: Fragment() {
     lateinit var iRetrofit: IRetrofit
@@ -103,7 +94,6 @@ class HomeFragment: Fragment() {
             LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         var adapter = SongAdapter(listTopSong)
         adapter.setCallBack {
-            isOnline = true
             val song = listTopSong[it]
             val id = song.id
             val title = song.title
@@ -124,8 +114,8 @@ class HomeFragment: Fragment() {
 //            intent.putExtra("singer",artist)
             startActivity(intentSong)
         }
-        home_rvCharts.layoutManager = layoutManager
-        home_rvCharts.adapter = adapter
+        home_rvCharts?.layoutManager = layoutManager
+        home_rvCharts?.adapter = adapter
     }
 
 }

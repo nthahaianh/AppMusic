@@ -1,15 +1,16 @@
 package com.example.appmusic
 
+import android.app.DownloadManager
 import android.content.*
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
+import android.os.*
+import android.util.Log
+import android.webkit.CookieManager
 import android.widget.SeekBar
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,11 +19,17 @@ import com.example.appmusic.Adapter.SongAdapter
 import com.example.appmusic.SQLite.SQLHelper
 import com.example.appmusic.Service.SongService
 import com.example.appmusic.Service.SongService.Companion.currentSong
-import com.example.appmusic.Service.SongService.Companion.img
-import com.example.appmusic.Service.SongService.Companion.isOnline
 import com.example.demoretrofit.IRetrofit
 import com.example.demoretrofit.MyRetrofit
 import kotlinx.android.synthetic.main.activity_song.*
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
+import java.net.URL
+
 
 class SongActivity : AppCompatActivity() {
     lateinit var sharedPreferences: SharedPreferences
@@ -45,6 +52,7 @@ class SongActivity : AppCompatActivity() {
             isSongServiceConnected = false
         }
     }
+
     override fun onStart() {
         super.onStart()
         val intent = Intent(baseContext, SongService::class.java)
@@ -60,10 +68,11 @@ class SongActivity : AppCompatActivity() {
     private val myBroadcast = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val bundle = intent!!.extras ?: return
-            var action=bundle.getInt("action")
+            var action = bundle.getInt("action")
             updateUI(action)
         }
     }
+
     private fun updateUI(action: Int) {
         when (action) {
             SongService.ON_START -> {
@@ -73,7 +82,7 @@ class SongActivity : AppCompatActivity() {
                 try {
                     isFavourite = sqlHelper.isExists(currentSong.id)
                     updateIconFavourite()
-                }catch (e:Exception){
+                } catch (e: Exception) {
                     e.stackTrace
                 }
                 song_tvTitle.text = currentSong.displayName
@@ -92,21 +101,17 @@ class SongActivity : AppCompatActivity() {
                 SongService.isPlaying = true
                 updateBtnPlay()
             }
-            SongService.ON_PREVIOUS ->{
-//                mService.previousSong()
-            }
-            SongService.ON_NEXT ->{
-//                mService.nextSong()
-            }
-            SongService.ON_RECOMMEND->{
+            SongService.ON_RECOMMEND -> {
                 setUpRecommend()
             }
         }
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_song)
-        LocalBroadcastManager.getInstance(this).registerReceiver(myBroadcast, IntentFilter("ac_service_to_main"))
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(myBroadcast, IntentFilter("ac_service_to_main"))
         sqlHelper = SQLHelper(baseContext)
         iRetrofit = MyRetrofit.getRetrofit().create(IRetrofit::class.java)
         sharedPreferences = getSharedPreferences("SharePreferences", Context.MODE_PRIVATE)
@@ -123,24 +128,32 @@ class SongActivity : AppCompatActivity() {
         setUpSeekBar()
         try {
             isFavourite = sqlHelper.isExists(currentSong.id)
+            Log.e("song-act", "isFavourite - sql${isFavourite}")
             updateIconFavourite()
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e.stackTrace
+        }
+        song_ivDownload.setOnClickListener {
+            if(currentSong.isOnline){
+                downloadSong()
+            }else{
+                Toast.makeText(baseContext,"This song is available",Toast.LENGTH_SHORT).show()
+            }
         }
         song_ivBack.setOnClickListener { finish() }
         song_ivFavourite.setOnClickListener {
-//            try {
-//                if (isFavourite){
-//                    sqlHelper.removeSong(currentSong.id)
-//                }else{
-//                    if(isOnline){
-//                        sqlHelper.addSongOnline(currentSong)
-//                    }
-//                }
-//            }catch (e:Exception){
-//                e.stackTrace
-//            }
-            isFavourite=!isFavourite
+            try {
+                if (isFavourite) {
+                    sqlHelper.removeSong(currentSong.id)
+                    Log.e("song-ivFa", "remove sql")
+                } else {
+                    sqlHelper.addSong(currentSong)
+                    Log.e("song-ivFa", "add sql ")
+                }
+            } catch (e: Exception) {
+                e.stackTrace
+            }
+            isFavourite = !isFavourite
             updateIconFavourite()
         }
         song_ivShuffle.setOnClickListener {
@@ -150,19 +163,55 @@ class SongActivity : AppCompatActivity() {
         song_ivTypeRepeat.setOnClickListener {
             when (typeRepeat) {
                 2 -> typeRepeat = 0
-                else ->typeRepeat++
+                else -> typeRepeat++
             }
             updateIconRepeat()
         }
         song_btnPlay.setOnClickListener {
-            if(SongService.isPlaying){
+            if (SongService.isPlaying) {
                 songService.pauseSong()
-            }else{
+            } else {
                 songService.resumeSong()
             }
             updateBtnPlay()
         }
+
+        song_btnNext_song.setOnClickListener {
+            val intent = Intent(baseContext, SongService::class.java)
+            intent.putExtra("action", SongService.ON_NEXT)
+            startService(intent)
+        }
+        song_btnPrevious_song.setOnClickListener {
+            val intent = Intent(baseContext, SongService::class.java)
+            intent.putExtra("action", SongService.ON_PREVIOUS)
+            startService(intent)
+        }
         setUpRecommend()
+    }
+
+    private fun downloadSong() {
+        try {
+            var url = "http://api.mp3.zing.vn/api/streaming/audio/${currentSong.id}/128"
+            var request = DownloadManager.Request(Uri.parse(url))
+            var title = "${currentSong.title}.mp3"
+            request.setTitle(title)
+            request.setDescription("Downloading")
+            var cookie = CookieManager.getInstance().getCookie(url)
+            request.addRequestHeader("cookie",cookie)
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,title)
+            var downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            downloadManager.enqueue(request)
+            Toast.makeText(this, "Download...", Toast.LENGTH_SHORT).show()
+        }catch (e: IOException){
+            e.stackTrace
+            Log.e("IOException","IOException when download")
+        }catch (e: Exception){
+            e.stackTrace
+            Log.e("Exception","Download  fail")
+            Toast.makeText(this, "Download fail", Toast.LENGTH_SHORT).show()
+        }finally {
+        }
     }
 
     private fun updateImage() {
@@ -176,7 +225,7 @@ class SongActivity : AppCompatActivity() {
                 var bitmap = BitmapFactory.decodeByteArray(byteImage, 0, byteImage!!.size)
                 Glide.with(baseContext).load(bitmap).into(song_ivImage)
             }
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e.stackTrace
             Glide.with(baseContext).load(R.drawable.music).into(song_ivImage)
         }
@@ -193,9 +242,8 @@ class SongActivity : AppCompatActivity() {
             var artist: String = song.artists_names
             var displayName = "${song.title} - ${artist}"
             var data = "http://api.mp3.zing.vn/api/streaming/audio/${song.id}/128"
-            var duration: Long = (song.duration*1000).toLong()
-
-            var mySong=MySong(id,title,artist,displayName,data,duration,song.thumbnail,true)
+            var duration: Long = (song.duration * 1000).toLong()
+            var mySong = MySong(id, title, artist, displayName, data, duration, song.thumbnail, true)
             currentSong = mySong
             val intent = Intent(baseContext, SongService::class.java)
             intent.putExtra("action", SongService.ON_START)
@@ -249,10 +297,10 @@ class SongActivity : AppCompatActivity() {
             song_ivFavourite.setImageResource(R.drawable.ic_not_favorite)
         }
     }
+
     private fun setUpSeekBar() {
 //        updateBtnPlay()
-
-        var nowSong = SongService.currentSong
+        var nowSong = currentSong
         song_tvTitle.text = nowSong.title
 
         val totalDuration = nowSong.duration
@@ -275,7 +323,8 @@ class SongActivity : AppCompatActivity() {
                 seekBar: SeekBar,
                 progress: Int,
                 fromUser: Boolean
-            ) {            }
+            ) {
+            }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {
             }
@@ -286,20 +335,22 @@ class SongActivity : AppCompatActivity() {
 
         })
     }
+
     fun millionSecondsToTime(milliSeconds: Long): String {
-        val hours = milliSeconds / (1000*60*60)
-        val minutes = (milliSeconds % (1000*60*60)) / (1000*60)
-        val seconds = (milliSeconds % (1000*60*60)) % (1000*60)/1000
+        val hours = milliSeconds / (1000 * 60 * 60)
+        val minutes = (milliSeconds % (1000 * 60 * 60)) / (1000 * 60)
+        val seconds = (milliSeconds % (1000 * 60 * 60)) % (1000 * 60) / 1000
         return if (hours > 0) {
             String.format("%02d:%02d:%02d", hours, minutes, seconds)
         } else {
             String.format("%02d:%02d", minutes, seconds)
         }
     }
+
     fun intToTime(milliSeconds: Int): String {
-        val hours = milliSeconds / (1000*60*60)
-        val minutes = (milliSeconds % (1000*60*60)) / (1000*60)
-        val seconds = (milliSeconds % (1000*60*60)) % (1000*60)/1000
+        val hours = milliSeconds / (1000 * 60 * 60)
+        val minutes = (milliSeconds % (1000 * 60 * 60)) / (1000 * 60)
+        val seconds = (milliSeconds % (1000 * 60 * 60)) % (1000 * 60) / 1000
         return if (hours > 0) {
             String.format("%02d:%02d:%02d", hours, minutes, seconds)
         } else {

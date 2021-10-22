@@ -4,14 +4,14 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Binder
 import android.os.Bundle
 import android.os.IBinder
+import android.provider.MediaStore
 import android.util.Log
 import android.widget.RemoteViews
 import android.widget.Toast
@@ -21,6 +21,7 @@ import com.example.appmusic.MainActivity
 import com.example.appmusic.MyApplication.Companion.CHANNEL_ID
 import com.example.appmusic.MySong
 import com.example.appmusic.R
+import com.example.appmusic.SQLite.SQLHelper
 import com.example.appmusic.SongReceiver
 import com.example.demoretrofit.IRetrofit
 import com.example.demoretrofit.Model.ResultRecommend
@@ -30,17 +31,18 @@ import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import kotlin.random.Random
 
 
 class SongService : Service() {
     companion object {
-        var songsFavourite: MutableList<MySong> = mutableListOf()
+        lateinit var sharedPreferences: SharedPreferences
+        var listHistory: MutableList<MySong> = mutableListOf()
         var listRecommend: MutableList<Song> = mutableListOf()
         var mediaPlayer = MediaPlayer()
         var isPlaying = false
         var isDisplay = false
         var isDestroy = false
-        var isOnline = false
         lateinit var currentSong:MySong
         lateinit var img:Bitmap
         const val ON_PAUSE = 11
@@ -68,6 +70,7 @@ class SongService : Service() {
     }
     override fun onCreate() {
         super.onCreate()
+        sharedPreferences = getSharedPreferences("SharePreferences", Context.MODE_PRIVATE)
 //        Toast.makeText(this,"SongService - onCreate",Toast.LENGTH_SHORT).show()
     }
 
@@ -104,14 +107,103 @@ class SongService : Service() {
                 resumeSong()
             }
             ON_PREVIOUS -> {
+                previousSong()
+                sendNotification()
                 sendActiontoActivity(ON_PREVIOUS)
             }
             ON_NEXT -> {
+                nextSong()
+                sendNotification()
                 sendActiontoActivity(ON_NEXT)
             }
         }
     }
     fun startSong() {
+        try {
+            if(mediaPlayer==null){
+                mediaPlayer = MediaPlayer()
+            }
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.release()
+            }
+            mediaPlayer = MediaPlayer()
+            mediaPlayer.setDataSource(this, Uri.parse(currentSong.data))
+            mediaPlayer.prepare()
+            mediaPlayer.start()
+            listHistory.add(currentSong)
+            isPlaying=true
+            isDisplay=true
+            mediaPlayer.setOnCompletionListener {
+                var sharedPreferences = getSharedPreferences(
+                    "SharePreferences",
+                    Context.MODE_PRIVATE
+                )
+                var typeRepeat = sharedPreferences.getInt("typeRepeat", 0)
+                when (typeRepeat) {
+                    0 -> {
+                        mediaPlayer.seekTo(0)
+                        mediaPlayer.pause()
+                        isPlaying = false
+                        sendNotification()
+                        sendActiontoActivity(ON_DONE)
+                    }
+                    1 -> {
+                        startSong()
+                    }
+                    2 -> {
+                        mediaPlayer.stop()
+                        isPlaying = false
+                        if(currentSong.isOnline){
+                            var song = listRecommend[0]
+                            var data = "http://api.mp3.zing.vn/api/streaming/audio/${song.id}/128"
+                            var duration: Long = (song.duration * 1000).toLong()
+                            var nextSong = MySong(song.id,song.title,song.artists_names,song.title,data,duration, song.thumbnail, true)
+                            currentSong=nextSong
+                            startSong()
+                        }else{
+                        }
+                        sendNotification()
+                        sendActiontoActivity(ON_NEXT)
+                    }
+                }
+            }
+            if (currentSong.isOnline){
+                var type = "audio"
+                var id = "${currentSong.id}"
+                val iRetrofit = MyRetrofit.getRetrofit().create(IRetrofit::class.java)
+                iRetrofit.getSongRecommend(type, id).enqueue(object : Callback<ResultRecommend> {
+                    override fun onResponse(
+                        call: Call<ResultRecommend>,
+                        response: Response<ResultRecommend>
+                    ) {
+                        if (response.isSuccessful) {
+                            var dataRespone = response.body()
+                            if (dataRespone?.data?.items != null) {
+                                listRecommend = dataRespone.data.items
+                                for (a in listRecommend) {
+                                    Log.e("Service", a.toString())
+                                }
+                                sendActiontoActivity(ON_RECOMMEND)
+                            } else {
+                                Log.e("Service", "listRecommend null")
+                            }
+                        }
+                    }
+
+                    override fun onFailure(call: Call<ResultRecommend>, t: Throwable) {
+                        Log.e("Service", "Recommend error")
+                    }
+                })
+            }else{
+                listRecommend.clear()
+            }
+            sendNotification()
+            sendActiontoActivity(ON_START)
+        } catch (ex: Exception) {
+            ex.stackTrace
+        }
+    }
+    fun startSongPrevious() {
         try {
             if(mediaPlayer==null){
                 mediaPlayer = MediaPlayer()
@@ -145,13 +237,21 @@ class SongService : Service() {
                     2 -> {
                         mediaPlayer.stop()
                         isPlaying = false
+                        if(currentSong.isOnline){
+                            var song = listRecommend[0]
+                            var data = "http://api.mp3.zing.vn/api/streaming/audio/${song.id}/128"
+                            var duration: Long = (song.duration * 1000).toLong()
+                            var nextSong = MySong(song.id,song.title,song.artists_names,song.title,data,duration, song.thumbnail, true)
+                            currentSong=nextSong
+                            startSong()
+                        }else{
+                        }
                         sendNotification()
                         sendActiontoActivity(ON_NEXT)
-                        return@setOnCompletionListener
                     }
                 }
             }
-            if (isOnline){
+            if (currentSong.isOnline){
                 var type = "audio"
                 var id = "${currentSong.id}"
                 val iRetrofit = MyRetrofit.getRetrofit().create(IRetrofit::class.java)
@@ -167,19 +267,19 @@ class SongService : Service() {
                                 for (a in listRecommend) {
                                     Log.e("recommend", a.toString())
                                 }
-                                Log.e("homeFragment", "listRecommend not null")
                                 sendActiontoActivity(ON_RECOMMEND)
                             } else {
-                                Log.e("homeFragment", "listRecommend null")
+                                Log.e("service", "listRecommend null")
                             }
                         }
                     }
 
                     override fun onFailure(call: Call<ResultRecommend>, t: Throwable) {
-                        Log.e("homeFragment", "Recommend error")
+                        Log.e("Service", "Recommend error")
                     }
-
                 })
+            }else{
+                listRecommend.clear()
             }
             sendNotification()
             sendActiontoActivity(ON_START)
@@ -204,12 +304,35 @@ class SongService : Service() {
         sendActiontoActivity(ON_RESUME)
     }
     fun nextSong(){
-
-        Toast.makeText(this, "Next song", Toast.LENGTH_SHORT).show()
+        if(currentSong.isOnline){
+            var isShuffle = sharedPreferences.getBoolean("isShuffle",false)
+            if (isShuffle){
+                var song = listRecommend.random()
+                var data = "http://api.mp3.zing.vn/api/streaming/audio/${song.id}/128"
+                var duration: Long = (song.duration * 1000).toLong()
+                var nextSong = MySong(song.id,song.title,song.artists_names,song.title,data,duration, song.thumbnail, true)
+                currentSong=nextSong
+            }else{
+                var song = listRecommend[0]
+                var data = "http://api.mp3.zing.vn/api/streaming/audio/${song.id}/128"
+                var duration: Long = (song.duration * 1000).toLong()
+                var nextSong = MySong(song.id,song.title,song.artists_names,song.title,data,duration, song.thumbnail, true)
+                currentSong=nextSong
+            }
+            startSong()
+        }
     }
     fun previousSong(){
-        Toast.makeText(this, "Previous song", Toast.LENGTH_SHORT).show()
-
+        if (listHistory!=null && listHistory.size>1){
+            listHistory.remove(currentSong)
+            currentSong = listHistory[listHistory.size-1]
+            for (a in listHistory){
+                Log.e("history","current song $a")
+            }
+            startSongPrevious()
+        }else{
+            Toast.makeText(this, "This is the first song", Toast.LENGTH_SHORT).show()
+        }
     }
     fun sendNotification(){
         val remoteViews = RemoteViews(packageName, R.layout.notification)
@@ -286,5 +409,19 @@ class SongService : Service() {
         bundle.putInt("action", action)
         intent.putExtras(bundle)
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+    private fun load6Song():MutableList<MySong>{
+        var songs: MutableList<MySong> = mutableListOf()
+        var result: MutableList<MySong> = mutableListOf()
+        try {
+            var sqlHelper=SQLHelper(this)
+            songs = sqlHelper.getAll()
+            for (i in 0..5){
+                result.add(songs.random())
+            }
+        }catch (e:Exception){
+            e.stackTrace
+        }
+        return result
     }
 }
