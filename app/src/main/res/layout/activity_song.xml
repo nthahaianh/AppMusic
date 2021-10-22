@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/imgbg"
+    tools:context=".SongActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
+
+            <ImageView
+                android:id="@+id/song_ivBack"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="3dp"
+                android:src="@drawable/ic_arrow_back" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/song_ivFavourite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="3dp"
+                android:layout_marginHorizontal="10dp"
+                android:src="@drawable/ic_not_favorite" />
+            <ImageView
+                android:id="@+id/song_ivDownload"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="3dp"
+                android:src="@drawable/ic_baseline_download_24" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/song_ivImage"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_gravity="center_horizontal" />
+
+        <TextView
+            android:id="@+id/song_tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="PlaySong"
+            android:textColor="@color/greentext"
+            android:textSize="35dp" />
+
+        <TextView
+            android:id="@+id/song_tvSinger"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/greentext"
+            android:textSize="15dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="11dp"
+            android:background="@drawable/background2"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="15dp"
+            android:paddingHorizontal="20dp">
+
+            <TextView
+                android:id="@+id/song_tvCurrentTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="@color/greentext"
+                android:textSize="12sp" />
+
+            <SeekBar
+                android:id="@+id/song_seekBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/song_tvMaxTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="@color/greentext"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <ImageView
+                android:id="@+id/song_ivShuffle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:layout_weight="1"
+                android:src="@drawable/ic_shuffle" />
+
+            <ImageView
+                android:id="@+id/song_btnPrevious_song"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:layout_weight="1.2"
+                android:background="@drawable/background"
+                android:padding="12dp"
+                android:src="@drawable/ic_skip_previous" />
+
+            <ImageView
+                android:id="@+id/song_btnPlay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:layout_weight="1.5"
+                android:background="@drawable/background"
+                android:padding="20dp"
+                android:src="@drawable/ic_play_arrow" />
+
+            <ImageView
+                android:id="@+id/song_btnNext_song"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:layout_weight="1.2"
+                android:background="@drawable/background"
+                android:padding="12dp"
+                android:src="@drawable/ic_skip_next" />
+
+            <ImageView
+                android:id="@+id/song_ivTypeRepeat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:layout_weight="1"
+                android:src="@drawable/ic_no_repeat" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/song_tvRecommend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="10dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Recommend"
+            android:textColor="@color/greentext"
+            android:textSize="20dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/song_rvRecommend"
+            android:layout_width="match_parent"
+            android:layout_height="300dp" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
