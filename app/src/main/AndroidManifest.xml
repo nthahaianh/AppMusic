@@ -7,10 +7,11 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <application
-        android:name=".MyApplication"
+        android:name=".Receiver.MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -18,14 +19,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppMusic"
         android:usesCleartextTraffic="true">
-        <receiver
-            android:name=".ConnectionReceiver"></receiver>
-
         <activity
             android:name=".SongActivity"
             android:launchMode="singleTask" />
 
-        <receiver android:name=".SongReceiver" />
+        <receiver android:name=".Receiver.SongReceiver" />
 
         <service android:name=".Service.SongService" />
         <service android:name=".Service.MyService" />

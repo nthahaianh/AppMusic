@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -15,6 +16,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.appmusic.Adapter.FavouriteSongAdapter
+import com.example.appmusic.Model.MySong
 import com.example.appmusic.SQLite.SQLHelper
 import com.example.appmusic.Service.SongService
 import kotlinx.android.synthetic.main.fragment_favourite.*
@@ -61,22 +63,27 @@ class FavouriteFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
         try {
             favouriteList = sqlHelper.getAll()
-//            for (itemSong in favouriteList){
-//                if (itemSong.isOnline && sqlHelper.isExists(itemSong.id)){
-//
-//                }
-//            }
             val layoutManager: RecyclerView.LayoutManager =
                 LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             var adapter = FavouriteSongAdapter(context,favouriteList)
             adapter.setCallBack {
-                Log.e("favourite-click","${favouriteList[it]}")
-                SongService.currentSong = favouriteList[it]
-                val intent = Intent(context, SongService::class.java)
-                intent.putExtra("action", SongService.ON_START)
-                activity?.startService(intent)
-                val intentSong = Intent(context,SongActivity::class.java)
-                startActivity(intentSong)
+                if (favouriteList[it].isOnline){
+                    if (checkConnectivity()){
+                        SongService.currentSong = favouriteList[it]
+                        val intent = Intent(context, SongService::class.java)
+                        intent.putExtra("action", SongService.ON_START)
+                        activity?.startService(intent)
+                        val intentSong = Intent(context,SongActivity::class.java)
+                        startActivity(intentSong)
+                    }
+                }else{
+                    SongService.currentSong = favouriteList[it]
+                    val intent = Intent(context, SongService::class.java)
+                    intent.putExtra("action", SongService.ON_START)
+                    activity?.startService(intent)
+                    val intentSong = Intent(context,SongActivity::class.java)
+                    startActivity(intentSong)
+                }
             }
             favourite_rvFavourite.layoutManager = layoutManager
             favourite_rvFavourite.adapter = adapter
@@ -84,5 +91,17 @@ class FavouriteFragment: Fragment() {
             e.stackTrace
             Log.e("favourite-SQL","Read SQL error")
         }
+    }
+
+    private fun checkConnectivity(): Boolean {
+        val connectivityManager = activity?.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val info = connectivityManager.activeNetworkInfo
+        return if (info == null || !info.isConnected || !info.isAvailable) {
+            Toast.makeText(context, "No internet connection", Toast.LENGTH_SHORT).show()
+            false
+        } else {
+            true
+        }
+        return false
     }
 }

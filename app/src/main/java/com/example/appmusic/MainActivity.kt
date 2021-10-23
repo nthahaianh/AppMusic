@@ -3,6 +3,7 @@ package com.example.appmusic
 import android.Manifest
 import android.content.*
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -23,6 +24,7 @@ import com.example.appmusic.Service.SongService.Companion.ON_START
 import com.example.appmusic.Service.SongService.Companion.isDisplay
 import com.example.appmusic.Service.SongService.Companion.isPlaying
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_song.*
 
 class MainActivity : AppCompatActivity() {
     private val REQUEST_CODE_PERMISSIONS = 1
@@ -78,14 +80,22 @@ class MainActivity : AppCompatActivity() {
                 updateBtnPlay()
             }
             main_btnNext_song.setOnClickListener {
-                val intent = Intent(baseContext, SongService::class.java)
-                intent.putExtra("action", ON_NEXT)
-                startService(intent)
+                if(SongService.currentSong.isOnline){
+                    if (checkConnectivity()){
+                        actionToService(ON_NEXT)
+                    }
+                }else{
+                    actionToService(ON_NEXT)
+                }
             }
             main_btnPrevious_song.setOnClickListener {
-                val intent = Intent(baseContext, SongService::class.java)
-                intent.putExtra("action", ON_PREVIOUS)
-                startService(intent)
+                if(SongService.currentSong.isOnline){
+                    if (checkConnectivity()){
+                        actionToService(ON_PREVIOUS)
+                    }
+                }else{
+                    actionToService(ON_PREVIOUS)
+                }
             }
         }
 
@@ -149,6 +159,24 @@ class MainActivity : AppCompatActivity() {
         } else {
             main_btnPlay.setImageResource(R.drawable.ic_play_arrow)
         }
+    }
+
+    private fun actionToService(action:Int){
+        val intent = Intent(baseContext, SongService::class.java)
+        intent.putExtra("action", action)
+        startService(intent)
+    }
+
+    private fun checkConnectivity(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val info = connectivityManager.activeNetworkInfo
+        return if (info == null || !info.isConnected || !info.isAvailable) {
+            Toast.makeText(baseContext, "No internet connection", Toast.LENGTH_SHORT).show()
+            false
+        } else {
+            true
+        }
+        return false
     }
 
     private fun requestPermission() {

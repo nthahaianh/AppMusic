@@ -40,6 +40,7 @@
                 android:layout_margin="3dp"
                 android:layout_marginHorizontal="10dp"
                 android:src="@drawable/ic_not_favorite" />
+
             <ImageView
                 android:id="@+id/song_ivDownload"
                 android:layout_width="wrap_content"
@@ -174,6 +175,15 @@
             android:text="Recommend"
             android:textColor="@color/greentext"
             android:textSize="20dp" />
+
+        <ProgressBar
+            android:id="@+id/song_progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="40dp"
+            android:minHeight="40dp"
+            android:layout_gravity="center_horizontal"/>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/song_rvRecommend"

@@ -11,7 +11,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.appmusic.MySong
+import com.example.appmusic.Model.MySong
 import com.example.appmusic.R
 
 class MySongAdapter(val context: Context?, var listSong: MutableList<MySong>) :

@@ -1,4 +1,4 @@
-package com.example.appmusic
+package com.example.appmusic.Receiver
 
 import android.app.Application
 import android.app.NotificationChannel

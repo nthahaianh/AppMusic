@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.appmusic.Adapter.MySongAdapter
+import com.example.appmusic.Model.MySong
 import com.example.appmusic.Service.SongService
 import com.example.appmusic.Service.SongService.Companion.ON_START
 import kotlinx.android.synthetic.main.fragment_offline.*
@@ -76,9 +77,6 @@ class OfflineFragment: Fragment() {
                     )
                 )
             }
-        }
-        for (song in songs) {
-            Log.e("off-Song", "$song")
         }
     }
 }

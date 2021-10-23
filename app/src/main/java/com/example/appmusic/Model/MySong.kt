@@ -1,6 +1,5 @@
-package com.example.appmusic
+package com.example.appmusic.Model
 
-import android.graphics.Bitmap
 import java.io.Serializable
 
 class MySong(

@@ -5,10 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import androidx.core.database.getStringOrNull
-import com.example.appmusic.Model.SQLSong
-import com.example.appmusic.MySong
-import com.example.demoretrofit.Model.Song
+import com.example.appmusic.Model.MySong
 
 class SQLHelper(context: Context?) : SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
     companion object {
@@ -101,7 +98,7 @@ class SQLHelper(context: Context?) : SQLiteOpenHelper(context, DB_NAME, null, DB
             val thumbnail = cursor.getString(cursor.getColumnIndex("$DB_THUMBNAIL"))
             val getInfor = cursor.getInt(cursor.getColumnIndex("$DB_IS_ONLINE"))
             var isOnline = (getInfor==1)
-            val song=MySong(id,title,artist,displayName,data,duration,thumbnail,isOnline)
+            val song= MySong(id,title,artist,displayName,data,duration,thumbnail,isOnline)
             songList.add(song)
         }
         return songList

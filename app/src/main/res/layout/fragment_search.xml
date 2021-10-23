@@ -10,8 +10,8 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:hint="Search"
-        android:textColorHint="@color/grey"
         android:textColor="@color/greentext"
+        android:textColorHint="@color/grey"
         android:textSize="20dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@id/search_btnSeach"
@@ -21,10 +21,10 @@
         android:id="@+id/search_btnSeach"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
-        android:text="Seach"
         android:layout_marginRight="10dp"
-        android:textColor="@color/white"
         android:background="@drawable/background"
+        android:text="Seach"
+        android:textColor="@color/white"
         app:layout_constraintBottom_toBottomOf="@id/search_etSearch"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="@id/search_etSearch" />
@@ -36,4 +36,17 @@
         android:layout_margin="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/search_etSearch" />
+
+    <ProgressBar
+        android:id="@+id/search_progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minWidth="40dp"
+        android:minHeight="40dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

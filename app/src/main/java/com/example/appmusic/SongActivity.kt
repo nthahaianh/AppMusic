@@ -4,9 +4,11 @@ import android.app.DownloadManager
 import android.content.*
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.*
 import android.util.Log
+import android.view.View
 import android.webkit.CookieManager
 import android.widget.SeekBar
 import android.widget.Toast
@@ -16,19 +18,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.appmusic.Adapter.SongAdapter
+import com.example.appmusic.Model.MySong
 import com.example.appmusic.SQLite.SQLHelper
 import com.example.appmusic.Service.SongService
 import com.example.appmusic.Service.SongService.Companion.currentSong
 import com.example.demoretrofit.IRetrofit
 import com.example.demoretrofit.MyRetrofit
 import kotlinx.android.synthetic.main.activity_song.*
-import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.MalformedURLException
-import java.net.URL
 
 
 class SongActivity : AppCompatActivity() {
@@ -88,6 +85,7 @@ class SongActivity : AppCompatActivity() {
                 song_tvTitle.text = currentSong.displayName
                 song_tvSinger.text = currentSong.artist
                 setUpSeekBar()
+                song_progressBar.visibility = View.GONE
             }
             SongService.ON_PAUSE -> {
                 SongService.isPlaying = false
@@ -103,6 +101,10 @@ class SongActivity : AppCompatActivity() {
             }
             SongService.ON_RECOMMEND -> {
                 setUpRecommend()
+                song_progressBar.visibility = View.GONE
+            }
+            SongService.ON_PREVIOUS->{
+                song_progressBar.visibility = View.GONE
             }
         }
     }
@@ -120,6 +122,7 @@ class SongActivity : AppCompatActivity() {
         song_tvTitle.text = currentSong.displayName
         song_tvSinger.text = currentSong.artist
 
+        song_progressBar.visibility = View.GONE
         updateImage()
         updateIconRepeat()
         updateIconShuffle()
@@ -135,12 +138,16 @@ class SongActivity : AppCompatActivity() {
         }
         song_ivDownload.setOnClickListener {
             if(currentSong.isOnline){
-                downloadSong()
+                if(checkConnectivity()){
+                    downloadSong()
+                }
             }else{
                 Toast.makeText(baseContext,"This song is available",Toast.LENGTH_SHORT).show()
             }
         }
-        song_ivBack.setOnClickListener { finish() }
+        song_ivBack.setOnClickListener {
+            finish()
+        }
         song_ivFavourite.setOnClickListener {
             try {
                 if (isFavourite) {
@@ -177,18 +184,37 @@ class SongActivity : AppCompatActivity() {
         }
 
         song_btnNext_song.setOnClickListener {
-            val intent = Intent(baseContext, SongService::class.java)
-            intent.putExtra("action", SongService.ON_NEXT)
-            startService(intent)
+            song_progressBar.visibility = View.VISIBLE
+            if(currentSong.isOnline){
+                if (checkConnectivity()){
+                    actionToService(SongService.ON_NEXT)
+                }else{
+                    song_progressBar.visibility = View.GONE
+                }
+            }else{
+                actionToService(SongService.ON_NEXT)
+            }
         }
         song_btnPrevious_song.setOnClickListener {
-            val intent = Intent(baseContext, SongService::class.java)
-            intent.putExtra("action", SongService.ON_PREVIOUS)
-            startService(intent)
+            song_progressBar.visibility = View.VISIBLE
+            if(currentSong.isOnline){
+                if(checkConnectivity()){
+                    actionToService(SongService.ON_PREVIOUS)
+                }else{
+                    song_progressBar.visibility = View.GONE
+                }
+            }else{
+                actionToService(SongService.ON_PREVIOUS)
+            }
         }
         setUpRecommend()
     }
 
+    private fun actionToService(action:Int){
+        val intent = Intent(baseContext, SongService::class.java)
+        intent.putExtra("action", action)
+        startService(intent)
+    }
     private fun downloadSong() {
         try {
             var url = "http://api.mp3.zing.vn/api/streaming/audio/${currentSong.id}/128"
@@ -196,8 +222,6 @@ class SongActivity : AppCompatActivity() {
             var title = "${currentSong.title}.mp3"
             request.setTitle(title)
             request.setDescription("Downloading")
-            var cookie = CookieManager.getInstance().getCookie(url)
-            request.addRequestHeader("cookie",cookie)
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,title)
             var downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
@@ -236,18 +260,21 @@ class SongActivity : AppCompatActivity() {
             LinearLayoutManager(baseContext, LinearLayoutManager.VERTICAL, false)
         var adapter = SongAdapter(SongService.listRecommend)
         adapter.setCallBack {
-            val song = SongService.listRecommend[it]
-            val id = song.id
-            val title = song.title
-            var artist: String = song.artists_names
-            var displayName = "${song.title} - ${artist}"
-            var data = "http://api.mp3.zing.vn/api/streaming/audio/${song.id}/128"
-            var duration: Long = (song.duration * 1000).toLong()
-            var mySong = MySong(id, title, artist, displayName, data, duration, song.thumbnail, true)
-            currentSong = mySong
-            val intent = Intent(baseContext, SongService::class.java)
-            intent.putExtra("action", SongService.ON_START)
-            startService(intent)
+            if (checkConnectivity()){
+                song_progressBar.visibility = View.VISIBLE
+                val song = SongService.listRecommend[it]
+                val id = song.id
+                val title = song.title
+                var artist: String = song.artists_names
+                var displayName = "${song.title} - ${artist}"
+                var data = "http://api.mp3.zing.vn/api/streaming/audio/${song.id}/128"
+                var duration: Long = (song.duration * 1000).toLong()
+                var mySong = MySong(id, title, artist, displayName, data, duration, song.thumbnail, true)
+                currentSong = mySong
+                val intent = Intent(baseContext, SongService::class.java)
+                intent.putExtra("action", SongService.ON_START)
+                startService(intent)
+            }
         }
         song_rvRecommend.layoutManager = layoutManager
         song_rvRecommend.adapter = adapter
@@ -299,7 +326,6 @@ class SongActivity : AppCompatActivity() {
     }
 
     private fun setUpSeekBar() {
-//        updateBtnPlay()
         var nowSong = currentSong
         song_tvTitle.text = nowSong.title
 
@@ -334,6 +360,18 @@ class SongActivity : AppCompatActivity() {
             }
 
         })
+    }
+
+    private fun checkConnectivity(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val info = connectivityManager.activeNetworkInfo
+        return if (info == null || !info.isConnected || !info.isAvailable) {
+            Toast.makeText(baseContext, "No internet connection", Toast.LENGTH_SHORT).show()
+            false
+        } else {
+            true
+        }
+        return false
     }
 
     fun millionSecondsToTime(milliSeconds: Long): String {
